@@ -1,0 +1,215 @@
+#include <Keyboard.h>           //included library for to be able to defining buttons and their names
+#include <Keypad.h>             //included library for using keypad module
+#include <Wire.h>               //included library for communicate with I2C / TWI devices
+#include <LiquidCrystal_I2C.h>  //included library for LCD display
+#include <virtuabotixRTC.h>     //included library for RTC library DS1302 RTC module
+#include <SD.h>                 //included Sd card library
+#include <SPI.h>                //included SPI communication library for sd card
+
+#define BUTTON_KEY1 KEY_F13
+#define BUTTON_KEY2 KEY_F14
+#define BUTTON_KEY3 KEY_F15
+#define BUTTON_KEY4 KEY_F16
+#define BUTTON_KEY5 KEY_F17
+#define BUTTON_KEY6 KEY_F18
+#define BUTTON_KEY7 KEY_F19
+#define BUTTON_KEY8 KEY_F20
+#define BUTTON_KEY9 KEY_F21
+#define BUTTON_KEY10 KEY_F22
+#define BUTTON_KEY11 KEY_F23
+#define BUTTON_KEY12 KEY_F24  //Defining the buttons and their names
+
+const byte ROWS = 4;
+const byte COLS = 3;
+char keys[ROWS][COLS] = {
+  { '1', '2', '3' },
+  { '4', '5', '6' },
+  { '7', '8', '9' },
+  { '*', '0', '#' },
+};  //created a matrix for keypad
+
+byte rowPins[ROWS] = { 4, 5, 6, 7 };  //connect to the row pinouts of the keypad
+byte colPins[COLS] = { 8, 9, 10 };    //connect to the column pinouts of the keypad
+
+Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);  //mapped the keypad and buttons
+LiquidCrystal_I2C lcd(0x27, 16, 2);                                      //defined the adress of lcd display
+
+virtuabotixRTC myRTC(21, 20, 19);  //defined RTC modul's pins
+
+int CS_PIN = 18;  //defined the CS pin of SD module
+File myFile;      //created a file variable
+
+void setup() {
+  Serial.begin(9600);  //Started a serial communication
+  Keyboard.begin();    //started the keyboard library
+  lcd.begin();         //Started the LCD display
+  initializeSD();      //Starting and checking the sd card.
+}
+
+void loop() {
+  char key = keypad.getKey();
+
+  getRTC();
+  char daysOfTheWeek[7][4] = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+  int dayValue = myRTC.dayofweek;
+  String DoW = daysOfTheWeek[dayValue];
+
+  if (key) {
+    Serial.println(key);
+    switch (key) {
+      case '1':
+        Keyboard.press(KEY_F13);
+        PrintKey("F13");
+        WriteLog("F13");
+        break;
+
+      case '2':
+        Keyboard.press(KEY_F14);
+        PrintKey("F14");
+        WriteLog("F14");
+        break;
+
+      case '3':
+        Keyboard.press(KEY_F15);
+        PrintKey("F15");
+        WriteLog("F15");
+        break;
+
+      case '4':
+        Keyboard.press(KEY_F16);
+        PrintKey("F16");
+        WriteLog("F16");
+        break;
+
+      case '5':
+        Keyboard.press(KEY_F17);
+        PrintKey("F17");
+        WriteLog("F17");
+        break;
+
+      case '6':
+        Keyboard.press(KEY_F18);
+        PrintKey("F18");
+        WriteLog("F18");
+        break;
+
+      case '7':
+        Keyboard.press(KEY_F19);
+        PrintKey("F19");
+        WriteLog("F19");
+        break;
+
+      case '8':
+        Keyboard.press(KEY_F20);
+        PrintKey("F20");
+        WriteLog("F20");
+        break;
+
+      case '9':
+        Keyboard.press(KEY_F21);
+        PrintKey("F21");
+        WriteLog("F21");
+        break;
+
+      case '0':
+        Keyboard.press(KEY_F22);
+        PrintKey("F22");
+        WriteLog("F22");
+        break;
+
+      case '*':
+        Keyboard.press(KEY_F23);
+        PrintKey("F23");
+        WriteLog("F23");
+        break;
+
+      case '#':
+        Keyboard.press(KEY_F24);
+        PrintKey("F24");
+        WriteLog("F24");
+        break;
+    }
+    Keyboard.releaseAll();
+  }
+}
+
+void PrintKey(String key) {
+  lcd.clear();
+  String stoprint = key + " Pressed!     ";
+  for (i = 17; i >= 0; i--) {
+    lcd.setCursor(i, 0);
+    lcd.print(stoprint);
+    lcd.setCursor(i, 1);
+  }
+}
+
+void WriteLog(String key) {
+  myFile = SD.open("Log.txt", FILE_WRITE);  //Opening the Log txt file for data logging
+  if (myFile)                               //If block logs the pressed button and the time when the button pressed.
+  {
+    myFile.print(key);
+    myFile.print(" Pressed at ");
+    myFile.print(myRTC.year);
+    myFile.print("/");
+    myFile.print(myRTC.month);
+    myFile.print("/");
+    myFile.print(myRTC.dayofmonth);
+    myFile.print(" ");
+    myFile.print(myRTC.hours);
+    myFile.print(".");
+    myFile.print(myRTC.minutes);
+    myFile.print(".");
+    myFile.print(myRTC.seconds);
+    myFile.print(" ");
+    myFile.println(DoW);
+    myFile.close();
+    lcd.setCursor(9, 1);
+    lcd.print("done.");
+  } else {
+    Serial.println("error opening Log.txt");  //Else block just warning if there is something wrong with SD Card
+  }
+}
+
+void initializeSD()  //A function for starting SD Card
+{
+  lcd.setCursor(0, 0);
+  lcd.println("Initializing SD card...");
+  pinMode(CS_PIN, OUTPUT);
+
+  if (SD.begin()) {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("SD card is ready to use.");
+  } else {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("SD card failed");
+    return;
+  }
+}
+
+void getRTC()  //A function for getting the Real Time Clock and printing it to the Lcd Screen(16*2)
+{
+  myRTC.updateTime();
+  lcd.setCursor(0, 1);
+  if (myRTC.hours < 10) {
+    lcd.print("0");
+    lcd.print(myRTC.hours);
+  } else {
+    lcd.print(myRTC.hours);
+  }
+  lcd.print(":");
+  if (myRTC.minutes < 10) {
+    lcd.print("0");
+    lcd.print(myRTC.minutes);
+  } else {
+    lcd.print(myRTC.minutes);
+  }
+  lcd.print(":");
+  if (myRTC.seconds < 10) {
+    lcd.print("0");
+    lcd.print(myRTC.seconds);
+  } else {
+    lcd.print(myRTC.seconds);
+  }
+}
